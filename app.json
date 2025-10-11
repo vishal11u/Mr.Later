@@ -23,7 +23,9 @@
       "bundleIdentifier": "com.itzvishal.mrlater",
       "buildNumber": "1.0.0",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "Allow Mr.Later to access your photos to upload profile picture",
+        "NSCameraUsageDescription": "Allow Mr.Later to access your camera to take profile picture"
       }
     },
     "android": {
@@ -36,7 +38,14 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.itzvishal.mrlater",
-      "versionCode": 1
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES",
+        "NOTIFICATIONS"
+      ]
     },
     "web": {
       "output": "static",
@@ -55,6 +64,23 @@
           "dark": {
             "backgroundColor": "#000000"
           }
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Mr.Later to access your photos to upload profile picture",
+          "cameraPermission": "Allow Mr.Later to access your camera to take profile picture"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          // "icon": "./assets/images/notification-icon.png",
+          "color": "#6366F1",
+          // "sounds": [
+          //   "./assets/sounds/notification.wav"
+          // ]
         }
       ]
     ],
