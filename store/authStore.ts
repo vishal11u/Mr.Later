@@ -9,7 +9,6 @@ interface Profile {
   email: string | null;
   avatar_url: string | null;
   created_at: string;
-  full_name: string | null;
 }
 
 interface AuthState {
@@ -29,7 +28,7 @@ interface AuthState {
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
 }
 
-export const AuthProvider = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   session: null,
   profile: null,
@@ -71,6 +70,7 @@ export const AuthProvider = create<AuthState>((set, get) => ({
       await get().fetchProfile();
     } catch (error: any) {
       set({ error: error.message });
+      throw error; // Re-throw to be caught by the calling component
     } finally {
       set({ isLoading: false });
     }
@@ -83,7 +83,7 @@ export const AuthProvider = create<AuthState>((set, get) => ({
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: 'mrlater://auth/callback',
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -96,6 +96,7 @@ export const AuthProvider = create<AuthState>((set, get) => ({
       // Note: Profile will be fetched when session is established
     } catch (error: any) {
       set({ error: error.message });
+      throw error; // Re-throw to be caught by the calling component
     } finally {
       set({ isLoading: false });
     }
@@ -129,6 +130,7 @@ export const AuthProvider = create<AuthState>((set, get) => ({
       }
     } catch (error: any) {
       set({ error: error.message });
+      throw error; // Re-throw to be caught by the calling component
     } finally {
       set({ isLoading: false });
     }
@@ -157,6 +159,7 @@ export const AuthProvider = create<AuthState>((set, get) => ({
       if (error) throw error;
     } catch (error: any) {
       set({ error: error.message });
+      throw error; // Re-throw to be caught by the calling component
     } finally {
       set({ isLoading: false });
     }

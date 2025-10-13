@@ -3,7 +3,7 @@ import { Tabs } from 'expo-router';
 import { useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Home, ListTodo, Trophy, User } from 'lucide-react-native';
-import { AuthProvider } from '@/store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import { useTaskStore } from '@/store/taskStore';
 import { useChallengeStore } from '@/store/challengeStore';
 
@@ -11,7 +11,7 @@ export default function MainLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  const { initialize: initAuth, user } = AuthProvider();
+  const { initialize: initAuth, user } = useAuthStore();
   const { subscribeToTasks: subscribeToTasks } = useTaskStore();
   const { subscribeToChanges: subscribeToChallenges } = useChallengeStore();
 

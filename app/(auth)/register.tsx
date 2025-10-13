@@ -8,14 +8,14 @@ import {
   Platform,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
-import { AuthProvider } from '@/store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import { isValidEmail, isStrongPassword } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { signUp } = AuthProvider();
+  const { signUp } = useAuthStore();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -50,8 +50,7 @@ export default function RegisterScreen() {
     setIsLoading(true);
 
     try {
-      signUp(email, password, name);
-
+      await signUp(email, password, name);
       router.replace('/(main)/dashboard');
     } catch (err: any) {
       setError(err.message || 'Failed to create account');

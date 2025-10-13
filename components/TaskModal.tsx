@@ -14,6 +14,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { TaskPriority, TaskStatus, useTaskStore } from '@/store/taskStore';
 import { Input } from './ui/Input';
 import { Button } from './ui/Button';
+import * as Notifications from 'expo-notifications';
 
 interface TaskModalProps {
   visible: boolean;
@@ -67,14 +68,14 @@ const TaskModal = ({ visible, onClose, task }: TaskModalProps) => {
     setError('');
 
     try {
-      // const taskData = {
-      //   title,
-      //   description,
-      //   due_date: dueDate.toISOString(),
-      //   priority,
-      //   category: category || null,
-      //   status
-      // };
+      const taskData = {
+        title,
+        description,
+        due_date: dueDate.toISOString(),
+        priority,
+        category: category || null,
+        status,
+      };
 
       if (task) {
         await updateTask(task.id, {
@@ -96,6 +97,24 @@ const TaskModal = ({ visible, onClose, task }: TaskModalProps) => {
         });
       }
 
+      // Show success notification
+      if (Platform.OS !== 'web') {
+        try {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: task ? '✅ Task Updated!' : '✨ Task Created!',
+              body: task
+                ? 'Your task has been updated successfully'
+                : 'Your task has been created successfully',
+              data: { type: task ? 'task_update' : 'task_create' },
+            },
+            trigger: null, // Send immediately
+          });
+        } catch (notifError) {
+          console.warn('Could not send notification:', notifError);
+        }
+      }
+
       onClose();
       resetForm();
     } catch (err: any) {
@@ -113,6 +132,23 @@ const TaskModal = ({ visible, onClose, task }: TaskModalProps) => {
     try {
       await updateTask(task.id, { status: task.status === 'done' ? 'pending' : 'done' });
       onClose();
+      // Show success notification
+      if (Platform.OS !== 'web') {
+        try {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: '✅ Task Status Updated!',
+              body: task.status === 'done'
+                ? 'Your task has been marked as pending'
+                : 'Your task has been marked as done',
+              data: { type: 'task_status_update' },
+            },
+            trigger: null, // Send immediately
+          });
+        } catch (notifError) {
+          console.warn('Could not send notification:', notifError);
+        }
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to update task status');
     } finally {

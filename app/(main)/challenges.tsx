@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Image } from 'react-native';
 import { Users, Calendar, Trophy, ChevronRight } from 'lucide-react-native';
-import { AuthProvider } from '@/store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import { useChallengeStore } from '@/store/challengeStore';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
  
 
 export default function ChallengesScreen() {
-  const { user } = AuthProvider();
+  const { user } = useAuthStore();
   const { 
     challenges, 
     userChallenges, 

@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
-import { AuthProvider } from '@/store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
  
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
-  const { resetPassword } = AuthProvider();
+  const { resetPassword } = useAuthStore();
   
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -33,12 +33,7 @@ export default function ForgotPasswordScreen() {
     
     try {
       await resetPassword(email);
-      
-      if (error) {
-        setError(error);
-      } else {
-        setSuccess(true);
-      }
+      setSuccess(true);
     } catch (err: any) {
       setError(err.message || 'Failed to send reset password email');
     } finally {

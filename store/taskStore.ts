@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { create } from 'zustand';
-import { AuthProvider } from './authStore';
- 
+import { useAuthStore } from './authStore';
+
 export type TaskStatus = 'pending' | 'done' | 'later';
 export type TaskPriority = 'low' | 'medium' | 'high';
 
@@ -37,7 +37,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   error: null,
 
   fetchTasks: async () => {
-    const user = AuthProvider().user;
+    const user = useAuthStore.getState().user;
     if (!user) return;
 
     try {
@@ -60,7 +60,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
 
   createTask: async (task) => {
-    const user = AuthProvider().user;
+    const user = useAuthStore.getState().user;
     if (!user) return;
 
     try {
@@ -139,7 +139,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
 
   subscribeToTasks: () => {
-    const user = AuthProvider().user;
+    const user = useAuthStore.getState().user;
     if (!user) return () => {};
 
     const subscription = supabase

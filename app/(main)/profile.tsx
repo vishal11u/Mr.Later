@@ -14,20 +14,21 @@ import {
 import { useRouter } from 'expo-router';
 import { useColorScheme } from 'react-native';
 import { LogOut, Moon, Bell, ChevronRight, Shield, HelpCircle, Camera } from 'lucide-react-native';
-import { AuthProvider } from '@/store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import { getInitials } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import * as Notifications from 'expo-notifications';
 import * as ImagePicker from 'expo-image-picker';
 import { useNotifications } from '@/hooks/useNotifications';
 import { supabase } from '@/lib/supabase';
+import * as SecureStore from 'expo-secure-store';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  const { user, profile, signOut, fetchProfile } = AuthProvider();
+  const { user, profile, signOut, fetchProfile } = useAuthStore();
   const { expoPushToken } = useNotifications(user?.id);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -74,6 +75,8 @@ export default function ProfileScreen() {
         onPress: async () => {
           try {
             await signOut();
+            await SecureStore.deleteItemAsync('authToken');
+
             router.replace('/(auth)/login');
           } catch (error) {
             console.error('Sign out error:', error);
@@ -207,39 +210,56 @@ export default function ProfileScreen() {
     setUploadingImage(true);
 
     try {
-      // Convert image URI to blob
-      const response = await fetch(imageUri);
-      const blob = await response.blob();
-
       // Create a unique file name
       const fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg';
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
 
       // Delete old avatar if exists
       if (profile?.avatar_url) {
-        const oldPath = profile.avatar_url.split('/').pop();
-        if (oldPath) {
-          await supabase.storage.from('avatars').remove([`avatars/${oldPath}`]);
+        try {
+          // Extract the filename from the full URL
+          const urlParts = profile.avatar_url.split('/');
+          const oldFileName = urlParts[urlParts.length - 1];
+
+          if (oldFileName) {
+            const { error: deleteError } = await supabase.storage
+              .from('avatars')
+              .remove([oldFileName]);
+
+            if (deleteError) {
+              console.warn('Could not delete old avatar:', deleteError);
+            }
+          }
+        } catch (err) {
+          console.warn('Error deleting old avatar:', err);
+          // Continue with upload even if delete fails
         }
       }
+
+      // Fetch the image and convert to ArrayBuffer
+      const response = await fetch(imageUri);
+      const arrayBuffer = await response.arrayBuffer();
+      const fileData = new Uint8Array(arrayBuffer);
 
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, blob, {
+        .upload(fileName, fileData, {
           contentType: `image/${fileExt}`,
           upsert: true,
         });
 
       if (uploadError) {
-        throw uploadError;
+        console.error('Upload error:', uploadError);
+        throw new Error(uploadError.message);
       }
 
       // Get public URL
-      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
 
       const publicUrl = urlData.publicUrl;
+
+      console.log('Public URL:', publicUrl);
 
       // Update profile in database
       const { error: updateError } = await supabase
@@ -248,16 +268,42 @@ export default function ProfileScreen() {
         .eq('id', user.id);
 
       if (updateError) {
-        throw updateError;
+        console.error('Profile update error:', updateError);
+        throw new Error(updateError.message);
       }
 
       // Refresh profile to show new image
       await fetchProfile();
 
+      // Send success notification on mobile
+      if (Platform.OS !== 'web') {
+        try {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: '✨ Profile Updated!',
+              body: 'Your profile picture has been updated successfully',
+              data: { type: 'profile_update' },
+            },
+            trigger: null, // Send immediately
+          });
+        } catch (notifError) {
+          console.warn('Could not send notification:', notifError);
+        }
+      }
+
       Alert.alert('Success', 'Profile picture updated successfully!');
     } catch (error: any) {
       console.error('Error uploading image:', error);
-      Alert.alert('Upload Failed', error.message || 'Failed to upload image. Please try again.');
+
+      let errorMessage = 'Failed to upload image. Please try again.';
+
+      if (error.message?.includes('row-level security')) {
+        errorMessage = 'Storage permission error. Please check your bucket settings.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      Alert.alert('Upload Failed', errorMessage);
     } finally {
       setUploadingImage(false);
     }
@@ -278,11 +324,11 @@ export default function ProfileScreen() {
       <View className="items-center border-b border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
         <View className="relative mb-4">
           {profile?.avatar_url ? (
-            <Image source={{ uri: profile.avatar_url }} className="h-24 w-24 rounded-full" />
+            <Image source={{ uri: profile.avatar_url }} className="h-36 w-36 rounded-full" />
           ) : (
-            <View className="h-24 w-24 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900">
+            <View className="h-48 w-48 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900">
               <Text className="text-2xl font-bold text-primary-600 dark:text-primary-300">
-                {getInitials(profile?.full_name || user?.email || 'User')}
+                {getInitials(profile?.name || user?.email || 'User')}
               </Text>
             </View>
           )}
@@ -308,7 +354,7 @@ export default function ProfileScreen() {
         </View>
 
         <Text className="mb-1 text-xl font-bold text-gray-900 dark:text-white">
-          {profile?.full_name || 'User'}
+          {profile?.name || 'User'}
         </Text>
 
         <Text className="mb-4 text-gray-500 dark:text-gray-400">{user?.email || 'No email'}</Text>

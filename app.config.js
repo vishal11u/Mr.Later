@@ -32,7 +32,9 @@ export default {
       favicon: "./assets/images/favicon.png"
     },
     plugins: [
-      "expo-router"
+      "expo-router",
+      "expo-notifications",
+      "expo-secure-store"
     ],
     scheme: "mrlater",
     extra: {

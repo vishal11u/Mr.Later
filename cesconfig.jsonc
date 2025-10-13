@@ -1,6 +1,6 @@
 {
   "cesVersion": "2.20.0",
-  "projectName": "my-expo-app",
+  "projectName": "Mr.Later",
   "packages": [
     {
       "name": "nativewind",
