@@ -2,47 +2,97 @@ import 'dotenv/config';
 
 export default {
   expo: {
-    name: "Mr.Later",
-    slug: "mr-later",
-    version: "1.0.0",
-    orientation: "portrait",
-    icon: "./assets/images/icon.png",
-    userInterfaceStyle: "automatic",
-    splash: {
-      image: "./assets/images/splash-icon.png",
-      resizeMode: "contain",
-      backgroundColor: "#ffffff"
+    name: 'Mr.Later',
+    slug: 'mr-later',
+    version: '1.0.0',
+    orientation: 'portrait',
+    icon: './assets/images/icon.png',
+    scheme: 'mrlater',
+    userInterfaceStyle: 'automatic',
+    newArchEnabled: true,
+    jsEngine: 'hermes',
+    runtimeVersion: {
+      policy: 'appVersion',
     },
-    assetBundlePatterns: [
-      "**/*"
-    ],
+    updates: {
+      fallbackToCacheTimeout: 0,
+      enabled: true,
+      checkAutomatically: 'ON_LOAD',
+      url: 'https://u.expo.dev/23c8a164-ec2d-4aee-9db2-a943e9aac37c',
+    },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.yourusername.mrlater"
+      bundleIdentifier: 'com.itzvishal.mrlater',
+      buildNumber: '1.0.0',
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
+        NSPhotoLibraryUsageDescription:
+          'Allow Mr.Later to access your photos to upload profile picture',
+        NSCameraUsageDescription: 'Allow Mr.Later to access your camera to take profile picture',
+      },
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/images/android-icon-foreground.png",
-        backgroundImage: "./assets/images/android-icon-background.png",
-        monochromeImage: "./assets/images/android-icon-monochrome.png"
+        backgroundColor: '#E6F4FE',
+        foregroundImage: './assets/images/android-icon-foreground.png',
+        backgroundImage: './assets/images/android-icon-background.png',
+        monochromeImage: './assets/images/android-icon-monochrome.png',
       },
-      package: "com.yourusername.mrlater"
+      edgeToEdgeEnabled: true,
+      predictiveBackGestureEnabled: false,
+      package: 'com.itzvishal.mrlater',
+      versionCode: 1,
+      permissions: [
+        'CAMERA',
+        'READ_EXTERNAL_STORAGE',
+        'WRITE_EXTERNAL_STORAGE',
+        'READ_MEDIA_IMAGES',
+        'NOTIFICATIONS',
+      ],
     },
     web: {
-      favicon: "./assets/images/favicon.png"
+      output: 'static',
+      favicon: './assets/images/favicon.png',
+      bundler: 'metro',
     },
     plugins: [
-      "expo-router",
-      "expo-notifications",
-      "expo-secure-store"
+      'expo-router',
+      [
+        'expo-splash-screen',
+        {
+          image: './assets/images/splash-icon.png',
+          imageWidth: 200,
+          resizeMode: 'contain',
+          backgroundColor: '#ffffff',
+          dark: {
+            backgroundColor: '#000000',
+          },
+        },
+      ],
+      [
+        'expo-image-picker',
+        {
+          photosPermission: 'Allow Mr.Later to access your photos to upload profile picture',
+          cameraPermission: 'Allow Mr.Later to access your camera to take profile picture',
+        },
+      ],
+      [
+        'expo-notifications',
+        {
+          color: '#6366F1',
+        },
+      ],
     ],
-    scheme: "mrlater",
+    experiments: {
+      typedRoutes: true,
+      reactCompiler: true,
+    },
     extra: {
       SUPABASE_URL: process.env.SUPABASE_URL,
       SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
       eas: {
-        projectId: "23c8a164-ec2d-4aee-9db2-a943e9aac37c"
-      }
-    }
-  }
+        projectId: '23c8a164-ec2d-4aee-9db2-a943e9aac37c',
+      },
+    },
+  },
 };
