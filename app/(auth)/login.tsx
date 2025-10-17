@@ -9,12 +9,12 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { Link, useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -25,14 +25,17 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
+  const [secureLoginMethod, setSecureLoginMethod] = useState<'biometric' | 'otp' | null>(null);
 
   useEffect(() => {
     (async () => {
-      const hasHardware = await LocalAuthentication.hasHardwareAsync();
-      const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
-      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-      setIsBiometricAvailable(hasHardware && isEnrolled && supportedTypes.length > 0);
+      const enabled = await SecureStore.getItemAsync('secureLoginEnabled');
+      const method = await SecureStore.getItemAsync('secureLoginMethod');
+      if (enabled === 'true' && (method === 'biometric' || method === 'otp')) {
+        setSecureLoginMethod(method as 'biometric' | 'otp');
+      } else {
+        setSecureLoginMethod(null);
+      }
     })();
   }, []);
 
@@ -53,10 +56,34 @@ export default function LoginScreen() {
     setIsLoading(true);
     try {
       await signIn(email, password);
-
-      // Save credentials securely for biometric login
-      await SecureStore.setItemAsync('userEmail', email);
-      await SecureStore.setItemAsync('userPassword', password);
+      // Offer to enable secure login if not configured
+      const enabled = await SecureStore.getItemAsync('secureLoginEnabled');
+      const method = await SecureStore.getItemAsync('secureLoginMethod');
+      if (enabled !== 'true' || !method) {
+        Alert.alert(
+          'Enable Secure Login?',
+          'Use biometric or OTP next time you open the app.',
+          [
+            {
+              text: 'Biometric',
+              onPress: async () => {
+                await SecureStore.setItemAsync('secureLoginEnabled', 'true');
+                await SecureStore.setItemAsync('secureLoginMethod', 'biometric');
+                setSecureLoginMethod('biometric');
+              },
+            },
+            {
+              text: 'OTP',
+              onPress: async () => {
+                await SecureStore.setItemAsync('secureLoginEnabled', 'true');
+                await SecureStore.setItemAsync('secureLoginMethod', 'otp');
+                setSecureLoginMethod('otp');
+              },
+            },
+            { text: 'Not now', style: 'cancel' },
+          ]
+        );
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
     } finally {
@@ -64,32 +91,24 @@ export default function LoginScreen() {
     }
   };
 
-  const handleFingerprintLogin = async () => {
+  const handleOtpLogin = async () => {
+    if (!email) {
+      setError('Enter your email for OTP login');
+      return;
+    }
     try {
-      // Check if credentials are saved
-      const savedEmail = await SecureStore.getItemAsync('userEmail');
-      const savedPassword = await SecureStore.getItemAsync('userPassword');
-
-      if (!savedEmail || !savedPassword) {
-        Alert.alert(
-          'Error',
-          'Please sign in once with email and password first to enable biometric login'
-        );
-        return;
-      }
-
-      const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Login with Fingerprint',
-        fallbackLabel: 'Enter Password',
-        disableDeviceFallback: false,
+      setIsLoading(true);
+      setError('');
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: 'mrlater://login',
+        },
       });
-
-      if (result.success) {
-        setIsLoading(true);
-        await signIn(savedEmail, savedPassword);
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Fingerprint authentication failed');
+      if (error) throw error;
+      Alert.alert('Check your email', 'We sent you a login link or code.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to start OTP login');
     } finally {
       setIsLoading(false);
     }
@@ -100,7 +119,6 @@ export default function LoginScreen() {
     setIsGoogleLoading(true);
     try {
       await signInWithGoogle();
-      // Don't navigate here - let the auth store handle it via the useEffect hook
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Google');
       setIsGoogleLoading(false);
@@ -161,24 +179,24 @@ export default function LoginScreen() {
           Sign In
         </Button>
 
-        {isBiometricAvailable && (
-          <Button
-            variant="outline"
-            onPress={handleFingerprintLogin}
-            isLoading={isLoading}
-            disabled={isLoading || isGoogleLoading}
-            className="mb-4">
-            <Text className="text-gray-800 dark:text-gray-100">Login with Fingerprint</Text>
-          </Button>
-        )}
-
         <View className="my-4 flex-row items-center">
           <View className="h-px flex-1 bg-gray-300 dark:bg-gray-700" />
           <Text className="mx-4 text-gray-500 dark:text-gray-400">or</Text>
           <View className="h-px flex-1 bg-gray-300 dark:bg-gray-700" />
         </View>
 
-        <Button
+        {secureLoginMethod === 'otp' && (
+          <Button
+            variant="outline"
+            onPress={handleOtpLogin}
+            isLoading={isLoading}
+            disabled={isLoading || isGoogleLoading}
+            className="mb-4">
+            <Text className="text-gray-800 dark:text-gray-100">Login with OTP</Text>
+          </Button>
+        )}
+
+        {/* <Button
           variant="outline"
           onPress={handleGoogleLogin}
           isLoading={isGoogleLoading}
@@ -191,7 +209,7 @@ export default function LoginScreen() {
             />
             <Text className="text-gray-800 dark:text-gray-800">Sign in with Google</Text>
           </View>
-        </Button>
+        </Button> */}
 
         <View className="flex-row justify-center">
           <Text className="text-gray-600 dark:text-gray-400">Don't have an account? </Text>

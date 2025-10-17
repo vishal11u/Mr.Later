@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { create } from 'zustand';
 import { useAuthStore } from './authStore';
+import { PLAN_LIMITS, getPlanTier } from '@/constants/plan';
 
 export type TaskStatus = 'pending' | 'done' | 'later';
 export type TaskPriority = 'low' | 'medium' | 'high';
@@ -65,6 +66,14 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     try {
       set({ isLoading: true, error: null });
+
+      // Enforce plan limits for active tasks (not done)
+      const profile = useAuthStore.getState().profile as any;
+      const tier = getPlanTier(profile?.plan);
+      const activeCount = get().tasks.filter((t) => t.status !== 'done').length;
+      if (activeCount >= PLAN_LIMITS[tier].maxActiveTasks && task.status !== 'done') {
+        throw new Error('Task limit reached for your plan. Upgrade to add more tasks.');
+      }
 
       const newTask = {
         ...task,

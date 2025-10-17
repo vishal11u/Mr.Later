@@ -16,7 +16,8 @@ export default function ChallengesScreen() {
     fetchUserChallenges, 
     joinChallenge, 
     leaveChallenge, 
-    isLoading 
+   
+    subscribeToChanges,
   } = useChallengeStore();
   
   const [refreshing, setRefreshing] = useState(false);
@@ -24,6 +25,12 @@ export default function ChallengesScreen() {
   
   useEffect(() => {
     loadData();
+    const unsubscribe = subscribeToChanges();
+    return () => {
+      try {
+        unsubscribe && unsubscribe();
+      } catch {}
+    };
   }, []);
   
   const loadData = async () => {

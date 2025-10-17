@@ -58,3 +58,16 @@ export function truncateText(text: string, maxLength: number): string {
   if (!text || text.length <= maxLength) return text;
   return `${text.substring(0, maxLength)}...`;
 }
+
+export async function postEdge<T>(endpoint: string, body: any): Promise<T> {
+  const url = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/${endpoint}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new Error(`Request failed: ${res.status}`);
+  }
+  return (await res.json()) as T;
+}

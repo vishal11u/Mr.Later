@@ -15,13 +15,19 @@ import TaskModal from '@/components/TaskModal';
 import * as Notifications from 'expo-notifications';
 
 export default function TasksScreen() {
-  const { tasks, fetchTasks, deleteTask, doLater, isLoading } = useTaskStore();
+  const { tasks, fetchTasks, deleteTask, doLater, isLoading, subscribeToTasks } = useTaskStore();
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
 
   useEffect(() => {
     fetchTasks();
+    const unsubscribe = subscribeToTasks();
+    return () => {
+      try {
+        unsubscribe && unsubscribe();
+      } catch {}
+    };
   }, []);
 
   const onRefresh = async () => {

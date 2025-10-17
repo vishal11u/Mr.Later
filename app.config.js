@@ -44,8 +44,6 @@ export default {
       versionCode: 1,
       permissions: [
         'CAMERA',
-        'READ_EXTERNAL_STORAGE',
-        'WRITE_EXTERNAL_STORAGE',
         'READ_MEDIA_IMAGES',
         'NOTIFICATIONS',
       ],
@@ -103,6 +101,7 @@ export default {
     extra: {
       EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
       EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+      EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY,
       eas: {
         projectId: '23c8a164-ec2d-4aee-9db2-a943e9aac37c',
       },

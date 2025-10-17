@@ -35,9 +35,12 @@ export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [secureLoginEnabled, setSecureLoginEnabled] = useState(false);
+  const [secureLoginMethod, setSecureLoginMethod] = useState<'biometric' | 'otp' | null>(null);
 
   useEffect(() => {
     checkNotificationPermissions();
+    loadSecureLoginPrefs();
   }, []);
 
   const checkNotificationPermissions = async () => {
@@ -132,6 +135,33 @@ export default function ProfileScreen() {
       setNotificationsEnabled(false);
       await Notifications.cancelAllScheduledNotificationsAsync();
     }
+  };
+
+  const loadSecureLoginPrefs = async () => {
+    const enabled = await SecureStore.getItemAsync('secureLoginEnabled');
+    const method = await SecureStore.getItemAsync('secureLoginMethod');
+    setSecureLoginEnabled(enabled === 'true');
+    setSecureLoginMethod(method === 'biometric' || method === 'otp' ? (method as any) : null);
+  };
+
+  const handleToggleSecureLogin = async (value: boolean) => {
+    setSecureLoginEnabled(value);
+    if (!value) {
+      await SecureStore.setItemAsync('secureLoginEnabled', 'false');
+      await SecureStore.deleteItemAsync('secureLoginMethod');
+      return;
+    }
+    await SecureStore.setItemAsync('secureLoginEnabled', 'true');
+    if (!secureLoginMethod) {
+      // Default to OTP if not set
+      await SecureStore.setItemAsync('secureLoginMethod', 'otp');
+      setSecureLoginMethod('otp');
+    }
+  };
+
+  const handleSelectSecureMethod = async (method: 'biometric' | 'otp') => {
+    await SecureStore.setItemAsync('secureLoginMethod', method);
+    setSecureLoginMethod(method);
   };
 
   const handleImageUpload = () => {
@@ -375,6 +405,35 @@ export default function ProfileScreen() {
         </Text>
 
         <View className="mb-6 overflow-hidden rounded-lg bg-white dark:bg-gray-800">
+          {/* Secure Login */}
+          <View className="flex-row items-center justify-between border-b border-gray-100 p-4 dark:border-gray-700">
+            <View className="flex-1">
+              <Text className="text-gray-800 dark:text-gray-200">Secure Login</Text>
+              <Text className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {secureLoginEnabled ? `Enabled (${secureLoginMethod || 'otp'})` : 'Disabled'}
+              </Text>
+            </View>
+            <Switch
+              value={secureLoginEnabled}
+              onValueChange={handleToggleSecureLogin}
+              trackColor={{ false: '#D1D5DB', true: '#818CF8' }}
+              thumbColor={secureLoginEnabled ? '#6366F1' : '#F9FAFB'}
+            />
+          </View>
+
+          {secureLoginEnabled && (
+            <View className="flex-row items-center justify-between border-b border-gray-100 p-4 dark:border-gray-700">
+              <Text className="text-gray-800 dark:text-gray-200">Login Method</Text>
+              <View className="flex-row">
+                <TouchableOpacity onPress={() => handleSelectSecureMethod('biometric')} className={`mr-2 rounded-full px-3 py-1 ${secureLoginMethod === 'biometric' ? 'bg-primary-100 dark:bg-primary-900' : 'bg-gray-100 dark:bg-gray-700'}`}>
+                  <Text className="text-sm text-gray-800 dark:text-gray-200">Biometric</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleSelectSecureMethod('otp')} className={`rounded-full px-3 py-1 ${secureLoginMethod === 'otp' ? 'bg-primary-100 dark:bg-primary-900' : 'bg-gray-100 dark:bg-gray-700'}`}>
+                  <Text className="text-sm text-gray-800 dark:text-gray-200">OTP</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
           {/* Notifications */}
           <View className="flex-row items-center justify-between border-b border-gray-100 p-4 dark:border-gray-700">
             <View className="flex-1 flex-row items-center">

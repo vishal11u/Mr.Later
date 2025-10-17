@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { create } from 'zustand';
 import { useAuthStore } from './authStore';
+import { PLAN_LIMITS, getPlanTier } from '@/constants/plan';
 
 export interface Challenge {
   id: string;
@@ -78,6 +79,14 @@ export const useChallengeStore = create<ChallengeState>((set, get) => ({
 
     try {
       set({ isLoading: true, error: null });
+
+      // Enforce plan limits for joined challenges
+      const profile = useAuthStore.getState().profile as any;
+      const tier = getPlanTier(profile?.plan);
+      const currentJoined = get().userChallenges.length;
+      if (currentJoined >= PLAN_LIMITS[tier].maxJoinedChallenges) {
+        throw new Error('Challenge join limit reached for your plan. Upgrade to join more.');
+      }
 
       // Get current challenge
       const { data: challenge, error: fetchError } = await supabase

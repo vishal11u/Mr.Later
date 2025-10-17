@@ -1,11 +1,13 @@
 import React, { useEffect } from 'react';
-import { Tabs } from 'expo-router';
+import { Drawer } from 'expo-router/drawer';
 import { useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { Home, ListTodo, Trophy, User } from 'lucide-react-native';
+import { Home, ListTodo, Trophy, User, CreditCard, Gamepad2, Medal } from 'lucide-react-native';
 import { useAuthStore } from '@/store/authStore';
 import { useTaskStore } from '@/store/taskStore';
 import { useChallengeStore } from '@/store/challengeStore';
+import { Image, View, Text } from 'react-native';
+import { DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
 
 export default function MainLayout() {
   const colorScheme = useColorScheme();
@@ -34,55 +36,51 @@ export default function MainLayout() {
   return (
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <Tabs
+      <Drawer
         screenOptions={{
-          tabBarActiveTintColor: '#6366F1', // primary-500
-          tabBarInactiveTintColor: isDark ? '#9CA3AF' : '#6B7280',
-          tabBarStyle: {
-            backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
-            borderTopColor: isDark ? '#374151' : '#E5E7EB',
-          },
-          tabBarLabelStyle: {
-            fontSize: 12,
-            fontWeight: '500',
-          },
-          headerStyle: {
-            backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
-          },
+          drawerActiveTintColor: '#6366F1',
+          drawerInactiveTintColor: isDark ? '#D1D5DB' : '#6B7280',
+          headerStyle: { backgroundColor: isDark ? '#1F2937' : '#FFFFFF' },
           headerTintColor: isDark ? '#F9FAFB' : '#111827',
-          headerTitleStyle: {
-            fontWeight: '600',
-          },
-        }}>
-        <Tabs.Screen
-          name="dashboard"
-          options={{
-            title: 'Dashboard',
-            tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="tasks"
-          options={{
-            title: 'Tasks',
-            tabBarIcon: ({ color, size }) => <ListTodo size={size} color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="challenges"
-          options={{
-            title: 'Challenges',
-            tabBarIcon: ({ color, size }) => <Trophy size={size} color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="profile"
-          options={{
-            title: 'Profile',
-            tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
-          }}
-        />
-      </Tabs>
+        }}
+        drawerContent={(props) => (
+          <DrawerContentScrollView {...props} contentContainerStyle={{ paddingTop: 0 }}>
+            <View style={{ padding: 16, backgroundColor: isDark ? '#111827' : '#EEF2FF' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {useAuthStore.getState().profile?.avatar_url ? (
+                  <Image
+                    source={{ uri: useAuthStore.getState().profile!.avatar_url as string }}
+                    style={{ width: 56, height: 56, borderRadius: 28, marginRight: 12 }}
+                  />
+                ) : (
+                  <View
+                    style={{ width: 56, height: 56, borderRadius: 28, marginRight: 12, backgroundColor: '#C7D2FE', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <Text style={{ color: '#3730A3', fontWeight: '700' }}>{useAuthStore.getState().profile?.name?.[0]?.toUpperCase() || 'U'}</Text>
+                  </View>
+                )}
+                <View>
+                  <Text style={{ color: isDark ? '#F9FAFB' : '#111827', fontWeight: '700' }}>
+                    {useAuthStore.getState().profile?.name || 'User'}
+                  </Text>
+                  <Text style={{ color: isDark ? '#9CA3AF' : '#4B5563', marginTop: 2 }}>
+                    {useAuthStore.getState().user?.email}
+                  </Text>
+                </View>
+              </View>
+            </View>
+            <DrawerItemList {...props} />
+          </DrawerContentScrollView>
+        )}
+      >
+        <Drawer.Screen name="dashboard" options={{ title: 'Dashboard', drawerIcon: ({ color, size }) => <Home size={size} color={color} /> }} />
+        <Drawer.Screen name="tasks" options={{ title: 'Tasks', drawerIcon: ({ color, size }) => <ListTodo size={size} color={color} /> }} />
+        <Drawer.Screen name="challenges" options={{ title: 'Challenges', drawerIcon: ({ color, size }) => <Trophy size={size} color={color} /> }} />
+        <Drawer.Screen name="plans" options={{ title: 'Plans', drawerIcon: ({ color, size }) => <CreditCard size={size} color={color} /> }} />
+        <Drawer.Screen name="leaderboard" options={{ title: 'Leaderboard', drawerIcon: ({ color, size }) => <Medal size={size} color={color} /> }} />
+        <Drawer.Screen name="games" options={{ title: 'Games', drawerIcon: ({ color, size }) => <Gamepad2 size={size} color={color} /> }} />
+        <Drawer.Screen name="profile" options={{ title: 'Profile', drawerIcon: ({ color, size }) => <User size={size} color={color} /> }} />
+      </Drawer>
     </>
   );
 }

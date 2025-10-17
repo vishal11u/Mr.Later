@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from 'lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
+import * as SecureStore from 'expo-secure-store';
 
 interface Profile {
   id: string;
@@ -81,6 +82,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (error) throw error;
 
       set({ session: data.session, user: data.user });
+      // Persist access token for biometric gating (do not store password)
+      if (data.session?.access_token) {
+        await SecureStore.setItemAsync('authToken', data.session.access_token);
+      }
       await get().fetchProfile();
     } catch (error: any) {
       set({ error: error.message });
@@ -138,6 +143,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (profileError) throw profileError;
 
         set({ session: data.session, user: data.user });
+        if (data.session?.access_token) {
+          await SecureStore.setItemAsync('authToken', data.session.access_token);
+        }
         await get().fetchProfile();
       }
     } catch (error: any) {
@@ -156,6 +164,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (error) throw error;
 
       set({ user: null, session: null, profile: null });
+      try {
+        await SecureStore.deleteItemAsync('authToken');
+      } catch {}
     } catch (error: any) {
       set({ error: error.message });
     } finally {
