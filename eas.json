@@ -41,6 +41,16 @@
         "NODE_ENV": "production"
       }
     },
+    "production-apk": {
+      "autoIncrement": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "NODE_ENV": "production"
+      }
+    },
     "web": {
       "env": {
         "PLATFORM": "web",
@@ -54,10 +64,6 @@
         "serviceAccountKeyPath": "./credentials/android-service-account.json",
         "track": "production"
       }
-      // "ios": {
-      //   "appleId": "your-apple-id@example.com",
-      //   "ascAppId": "1234567890"
-      // }
     }
   }
 }
