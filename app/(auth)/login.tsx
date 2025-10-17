@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
 import { Link, useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
 import { Input } from '@/components/ui/Input';
@@ -17,11 +18,12 @@ import { Button } from '@/components/ui/Button';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn, signInWithGoogle } = useAuthStore();
+  const { signIn, signInWithGoogle, user, session } = useAuthStore();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState('');
   const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
 
@@ -34,6 +36,13 @@ export default function LoginScreen() {
     })();
   }, []);
 
+  // Navigate when authenticated
+  useEffect(() => {
+    if (user && session) {
+      router.replace('/(main)/dashboard');
+    }
+  }, [user, session]);
+
   const handleLogin = async () => {
     if (!email || !password) {
       setError('Email and password are required');
@@ -44,7 +53,10 @@ export default function LoginScreen() {
     setIsLoading(true);
     try {
       await signIn(email, password);
-      router.replace('/(main)/dashboard');
+
+      // Save credentials securely for biometric login
+      await SecureStore.setItemAsync('userEmail', email);
+      await SecureStore.setItemAsync('userPassword', password);
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
     } finally {
@@ -54,38 +66,44 @@ export default function LoginScreen() {
 
   const handleFingerprintLogin = async () => {
     try {
+      // Check if credentials are saved
+      const savedEmail = await SecureStore.getItemAsync('userEmail');
+      const savedPassword = await SecureStore.getItemAsync('userPassword');
+
+      if (!savedEmail || !savedPassword) {
+        Alert.alert(
+          'Error',
+          'Please sign in once with email and password first to enable biometric login'
+        );
+        return;
+      }
+
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Login with Fingerprint',
         fallbackLabel: 'Enter Password',
+        disableDeviceFallback: false,
       });
 
       if (result.success) {
-        const savedEmail = email || 'shitolevishal29@gmail.com';
-        const savedPassword = password || '12345678';
-        if (!savedEmail || !savedPassword) {
-          Alert.alert('Error', 'No saved credentials found');
-          return;
-        }
+        setIsLoading(true);
         await signIn(savedEmail, savedPassword);
-        router.replace('/(main)/dashboard');
-      } else {
-        Alert.alert('Authentication failed', 'Please try again');
       }
-    } catch (error) {
-      Alert.alert('Error', 'Fingerprint authentication not available');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Fingerprint authentication failed');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
     setError('');
-    setIsLoading(true);
+    setIsGoogleLoading(true);
     try {
       await signInWithGoogle();
-      router.replace('/(main)/dashboard');
+      // Don't navigate here - let the auth store handle it via the useEffect hook
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Google');
-    } finally {
-      setIsLoading(false);
+      setIsGoogleLoading(false);
     }
   };
 
@@ -119,6 +137,7 @@ export default function LoginScreen() {
           autoCapitalize="none"
           value={email}
           onChangeText={setEmail}
+          editable={!isLoading && !isGoogleLoading}
           className="mb-4"
         />
 
@@ -128,11 +147,12 @@ export default function LoginScreen() {
           secureTextEntry
           value={password}
           onChangeText={setPassword}
+          editable={!isLoading && !isGoogleLoading}
           className="mb-2"
         />
 
         <Link href="/forgot" asChild>
-          <TouchableOpacity className="mb-6 self-end">
+          <TouchableOpacity disabled={isLoading || isGoogleLoading} className="mb-6 self-end">
             <Text className="text-sm text-primary-600 dark:text-primary-400">Forgot Password?</Text>
           </TouchableOpacity>
         </Link>
@@ -142,7 +162,12 @@ export default function LoginScreen() {
         </Button>
 
         {isBiometricAvailable && (
-          <Button variant="outline" onPress={handleFingerprintLogin} className="mb-4">
+          <Button
+            variant="outline"
+            onPress={handleFingerprintLogin}
+            isLoading={isLoading}
+            disabled={isLoading || isGoogleLoading}
+            className="mb-4">
             <Text className="text-gray-800 dark:text-gray-100">Login with Fingerprint</Text>
           </Button>
         )}
@@ -156,7 +181,8 @@ export default function LoginScreen() {
         <Button
           variant="outline"
           onPress={handleGoogleLogin}
-          isLoading={isLoading}
+          isLoading={isGoogleLoading}
+          disabled={isLoading || isGoogleLoading}
           className="mb-6 bg-white">
           <View className="flex-row items-center">
             <Image
@@ -170,7 +196,7 @@ export default function LoginScreen() {
         <View className="flex-row justify-center">
           <Text className="text-gray-600 dark:text-gray-400">Don't have an account? </Text>
           <Link href="/(auth)/register" asChild>
-            <TouchableOpacity>
+            <TouchableOpacity disabled={isLoading || isGoogleLoading}>
               <Text className="font-medium text-primary-600 dark:text-primary-400">Sign Up</Text>
             </TouchableOpacity>
           </Link>

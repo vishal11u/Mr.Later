@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from 'lib/supabase';
+import * as WebBrowser from 'expo-web-browser';
 
 interface Profile {
   id: string;
@@ -28,6 +29,9 @@ interface AuthState {
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
 }
 
+// Warm and reuse WebBrowser
+WebBrowser.warmUpAsync();
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   session: null,
@@ -48,6 +52,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ session, user: session.user });
         await get().fetchProfile();
       }
+
+      // Listen for auth changes
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        if (session) {
+          set({ session, user: session.user });
+          await get().fetchProfile();
+        } else {
+          set({ session: null, user: null, profile: null });
+        }
+      });
     } catch (error: any) {
       set({ error: error.message });
     } finally {
@@ -70,7 +84,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await get().fetchProfile();
     } catch (error: any) {
       set({ error: error.message });
-      throw error; // Re-throw to be caught by the calling component
+      throw error;
     } finally {
       set({ isLoading: false });
     }
@@ -83,20 +97,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'mrlater://auth/callback',
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
+          redirectTo: 'expo://login',
+          skipBrowserRedirect: false,
         },
       });
 
       if (error) throw error;
 
-      // Note: Profile will be fetched when session is established
+      if (data?.url) {
+        // Open the URL in the system browser
+        await WebBrowser.openBrowserAsync(data.url);
+      }
     } catch (error: any) {
       set({ error: error.message });
-      throw error; // Re-throw to be caught by the calling component
+      throw error;
     } finally {
       set({ isLoading: false });
     }
@@ -106,7 +120,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
 
-      // Create user account
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -114,7 +127,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (error) throw error;
 
-      // Create profile
       if (data.user) {
         const { error: profileError } = await supabase.from('profiles').insert({
           id: data.user.id,
@@ -130,7 +142,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     } catch (error: any) {
       set({ error: error.message });
-      throw error; // Re-throw to be caught by the calling component
+      throw error;
     } finally {
       set({ isLoading: false });
     }
@@ -159,7 +171,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (error) throw error;
     } catch (error: any) {
       set({ error: error.message });
-      throw error; // Re-throw to be caught by the calling component
+      throw error;
     } finally {
       set({ isLoading: false });
     }

@@ -82,14 +82,27 @@ export default {
           color: '#6366F1',
         },
       ],
+      [
+        'expo-secure-store',
+        {
+          isAvailableAsync: true,
+        },
+      ],
+      [
+        '@react-native-google-signin/google-signin',
+        {
+          iosUrlScheme: 'com.googleusercontent.apps.YOUR_CLIENT_ID',
+        },
+      ],
+      "expo-web-browser"
     ],
     experiments: {
       typedRoutes: true,
       reactCompiler: true,
     },
     extra: {
-      SUPABASE_URL: process.env.SUPABASE_URL,
-      SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
+      EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
       eas: {
         projectId: '23c8a164-ec2d-4aee-9db2-a943e9aac37c',
       },
